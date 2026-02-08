@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Connect the Dots</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+            font-family: sans-serif;
+        }
+        canvas {
+            background: white;
+            border: 2px solid #333;
+            border-radius: 8px;
+            cursor: crosshair;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .controls { margin-bottom: 20px; }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <h2 id="status">Connect the dots in order!</h2>
+        <button onclick="resetGame()">Reset Game</button>
+    </div>
+
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const statusText = document.getElementById('status');
+
+        // Define dot positions (x, y)
+        const dots = [
+            { x: 100, y: 100 },
+            { x: 300, y: 50 },
+            { x: 500, y: 100 },
+            { x: 550, y: 300 },
+            { x: 300, y: 350 },
+            { x: 50, y: 300 }
+        ];
+
+        let nextDotIndex = 0;
+        let connections = [];
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw connections
+            ctx.beginPath();
+            ctx.strokeStyle = '#007bff';
+            ctx.lineWidth = 3;
+            if (connections.length > 0) {
+                ctx.moveTo(connections[0].x, connections[0].y);
+                for (let i = 1; i < connections.length; i++) {
+                    ctx.lineTo(connections[i].x, connections[i].y);
+                }
+                ctx.stroke();
+            }
+
+            // Draw dots
+            dots.forEach((dot, index) => {
+                ctx.beginPath();
+                ctx.arc(dot.x, dot.y, 10, 0, Math.PI * 2);
+                
+                // Color dots: Green for completed, Blue for next, Gray for pending
+                if (index < nextDotIndex) {
+                    ctx.fillStyle = '#28a745';
+                } else if (index === nextDotIndex) {
+                    ctx.fillStyle = '#007bff';
+                } else {
+                    ctx.fillStyle = '#ccc';
+                }
+                
+                ctx.fill();
+                
+                // Draw numbers
+                ctx.fillStyle = "black";
+                ctx.font = "14px Arial";
+                ctx.fillText(index + 1, dot.x - 5, dot.y - 15);
+            });
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            if (nextDotIndex < dots.length) {
+                const target = dots[nextDotIndex];
+                // Check if click is within the dot radius (15px buffer)
+                const dist = Math.sqrt((mouseX - target.x)**2 + (mouseY - target.y)**2);
+
+                if (dist < 15) {
+                    connections.push(dots[nextDotIndex]);
+                    nextDotIndex++;
+                    
+                    if (nextDotIndex === dots.length) {
+                        statusText.innerText = "You finished the shape! 🎉";
+                    }
+                    draw();
+                }
+            }
+        });
+
+        function resetGame() {
+            nextDotIndex = 0;
+            connections = [];
+            statusText.innerText = "Connect the dots in order!";
+            draw();
+        }
+
+        draw();
+    </script>
+</body>
+</html>
