@@ -1,20 +1,40 @@
 body {
     margin: 0; padding: 0;
     display: flex; flex-direction: column; align-items: center;
-    background-color: #fffafa; font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+    color: white; font-family: 'Segoe UI', sans-serif;
     overflow: hidden; height: 100vh;
 }
-.ui { padding: 20px; text-align: center; height: 150px; z-index: 10; width: 100%; }
-#tutorial {
-    font-size: 0.9rem; color: #e91e63; font-weight: bold;
-    text-transform: uppercase; letter-spacing: 1px;
-    animation: pulse 1.5s infinite;
+.stars-bg {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: transparent url('https://www.transparenttextures.com/patterns/stardust.png') repeat;
+    opacity: 0.2; pointer-events: none;
 }
-@keyframes pulse { 
-    0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } 
+#final-ui {
+    position: absolute; top: 15%; width: 100%; text-align: center;
+    z-index: 20; display: none; pointer-events: none;
+    padding: 0 10px; box-sizing: border-box;
 }
-#message-container { margin-top: 10px; font-size: 1.1rem; line-height: 1.4; }
-#completed-text { color: #aaa; }
-#active-word { color: #e91e63; font-weight: bold; border-bottom: 2px solid #e91e63; }
-canvas { background: #fff; touch-action: none; cursor: crosshair; }
-button { margin-top: 10px; padding: 8px 20px; background: #e91e63; color: white; border: none; border-radius: 20px; display: none; }
+#final-heading {
+    font-size: 1.4rem; color: #80deea; margin-bottom: 10px;
+    text-shadow: 0 0 10px rgba(128, 222, 234, 0.6);
+}
+#full-message {
+    font-size: 1rem; line-height: 1.5; color: white;
+    max-width: 90%; margin: 0 auto 25px auto;
+}
+#nextPageBtn {
+    padding: 10px 25px; background: #80deea; color: #020617;
+    border: none; border-radius: 50px; font-weight: bold;
+    cursor: pointer; pointer-events: auto; text-transform: lowercase;
+}
+.ui { padding: 20px; text-align: center; height: 130px; z-index: 10; width: 100%; }
+#message-container { margin-top: 10px; font-size: 1rem; min-height: 3.5em; }
+#completed-text { color: rgba(255,255,255,0.3); }
+#active-word { color: #80deea; font-weight: bold; border-bottom: 2px solid #80deea; }
+canvas { background: transparent; touch-action: none; flex-grow: 1; }
+#resetBtn {
+    margin-top: 5px; padding: 5px 15px; background: transparent;
+    color: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.3); 
+    border-radius: 20px; font-size: 0.8rem; display: none;
+}
