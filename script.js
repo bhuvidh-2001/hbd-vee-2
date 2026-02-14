@@ -1,123 +1,126 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const messageDisplay = document.getElementById('message-display');
+const activeWordText = document.getElementById('active-word');
+const completedText = document.getElementById('completed-text');
+const tutorial = document.getElementById('tutorial');
 const resetBtn = document.getElementById('resetBtn');
 
-const sentence = "Happiest Birthday Manu, you deserve all the happiness in the world and I hope this year gives you everything your heart wants.";
-const words = sentence.split(" ");
+const wordGroups = [
+    "Happiest Birthday Manu,".split(" "), 
+    "you deserve all the happiness".split(" "), 
+    "in the world and I hope".split(" "), 
+    "this year gives you everything your heart wants.".split(" ")
+];
 
 let dots = [];
 let nextDotIndex = 0;
 let connections = [];
 let isDragging = false;
-let camera = { x: 0, y: 0, zoom: 3 };
-let targetCamera = { x: 0, y: 0, zoom: 3 };
+let camera = { x: 0, y: 0, zoom: 2.5 };
+let targetCamera = { x: 0, y: 0, zoom: 2.5 };
 
 function initGame() {
     dots = [];
-    // Defining coordinates to spell "LOVE"
-    // Space is roughly 0-600 width, 0-400 height
-    const path = [
-        // L
-        {x: 100, y: 100}, {x: 100, y: 300}, {x: 180, y: 300},
-        // O
-        {x: 250, y: 100}, {x: 320, y: 100}, {x: 350, y: 200}, {x: 320, y: 300}, 
-        {x: 250, y: 300}, {x: 220, y: 200}, {x: 250, y: 100},
-        // V
-        {x: 400, y: 100}, {x: 450, y: 300}, {x: 500, y: 100},
-        // E
-        {x: 650, y: 100}, {x: 580, y: 100}, {x: 580, y: 200}, {x: 630, y: 200},
-        {x: 580, y: 200}, {x: 580, y: 300}, {x: 650, y: 300}
+    connections = [];
+    nextDotIndex = 0;
+    
+    // Coordinates for L, O, V, E (Separated)
+    const letterPaths = [
+        [{x: 100, y: 100}, {x: 100, y: 300}, {x: 180, y: 300}], // L
+        [{x: 300, y: 100}, {x: 380, y: 100}, {x: 380, y: 300}, {x: 300, y: 300}, {x: 300, y: 100}], // O
+        [{x: 500, y: 100}, {x: 550, y: 300}, {x: 600, y: 100}], // V
+        [{x: 780, y: 100}, {x: 700, y: 100}, {x: 700, y: 200}, {x: 760, y: 200}, {x: 700, y: 200}, {x: 700, y: 300}, {x: 780, y: 300}] // E
     ];
 
-    // Map words to the path. If words > path dots, we stretch the path.
-    for (let i = 0; i < words.length; i++) {
-        // Find position along the LOVE path
-        const pathIndex = Math.floor((i / words.length) * path.length);
-        const p = path[pathIndex];
-        dots.push({ x: p.x, y: p.y, word: words[i] });
-    }
+    wordGroups.forEach((group, gIdx) => {
+        const path = letterPaths[gIdx];
+        group.forEach((word, wIdx) => {
+            const t = wIdx / (group.length - 1 || 1);
+            // Linear interpolation along the letter path
+            const pathPos = Math.floor(t * (path.length - 1));
+            const subT = (t * (path.length - 1)) % 1;
+            
+            const p1 = path[pathPos];
+            const p2 = path[pathPos + 1] || p1;
+            
+            dots.push({ 
+                x: p1.x + (p2.x - p1.x) * subT, 
+                y: p1.y + (p2.y - p1.y) * subT, 
+                word: word, 
+                letterGroup: gIdx 
+            });
+        });
+    });
 
-    targetCamera.x = dots[0].x;
-    targetCamera.y = dots[0].y;
+    camera.x = dots[0].x;
+    camera.y = dots[0].y;
 }
 
-function getMousePos(e) {
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    
-    // Reverse the camera transform to get world coordinates
-    const worldX = (clientX - rect.left - canvas.width / 2) / camera.zoom + camera.x;
-    const worldY = (clientY - rect.top - canvas.height / 2) / camera.zoom + camera.y;
-    return { x: worldX, y: worldY };
-}
-
-function update() {
-    // Smooth Lerping
-    camera.x += (targetCamera.x - camera.x) * 0.08;
-    camera.y += (targetCamera.y - camera.y) * 0.08;
-    camera.zoom += (targetCamera.zoom - camera.zoom) * 0.08;
+function draw() {
+    // Smooth camera glide
+    camera.x += (targetCamera.x - camera.x) * 0.04;
+    camera.y += (targetCamera.y - camera.y) * 0.04;
+    camera.zoom += (targetCamera.zoom - camera.zoom) * 0.03;
 
     if (nextDotIndex < dots.length) {
         targetCamera.x = dots[nextDotIndex].x;
         targetCamera.y = dots[nextDotIndex].y;
     } else {
-        // Finished: Center and Zoom Out to show full "LOVE"
-        targetCamera.x = 375;
-        targetCamera.y = 200;
-        targetCamera.zoom = 0.5; 
+        targetCamera.x = 440; targetCamera.y = 200; targetCamera.zoom = 0.4;
+        resetBtn.style.display = "inline-block";
     }
-}
 
-function draw() {
-    update();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
     ctx.save();
     ctx.translate(canvas.width / 2, canvas.height / 2);
     ctx.scale(camera.zoom, camera.zoom);
     ctx.translate(-camera.x, -camera.y);
 
-    // Draw full path trace in faint pink
-    ctx.beginPath();
-    ctx.setLineDash([5, 5]);
-    ctx.strokeStyle = "#ffe1e9";
-    ctx.lineWidth = 2;
-    ctx.moveTo(dots[0].x, dots[0].y);
-    dots.forEach(d => ctx.lineTo(d.x, d.y));
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    // Draw completed connections
+    // Draw only connections within the SAME group
     if (connections.length > 1) {
         ctx.beginPath();
         ctx.strokeStyle = "#e91e63";
-        ctx.lineWidth = 6 / camera.zoom;
-        ctx.lineJoin = "round";
+        ctx.lineWidth = 5 / camera.zoom;
         ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        
         ctx.moveTo(connections[0].x, connections[0].y);
-        connections.forEach(c => ctx.lineTo(c.x, c.y));
+        for(let i=1; i < connections.length; i++) {
+            // Check if dots belong to the same letter group to avoid joining them
+            if (connections[i].letterGroup === connections[i-1].letterGroup) {
+                ctx.lineTo(connections[i].x, connections[i].y);
+            } else {
+                ctx.moveTo(connections[i].x, connections[i].y);
+            }
+        }
         ctx.stroke();
     }
 
-    // Draw Dots
+    // Draw Tutorial Hint (if game hasn't started)
+    if (nextDotIndex === 0) {
+        ctx.beginPath();
+        ctx.strokeStyle = "#e91e63";
+        ctx.arc(dots[0].x, dots[0].y, 25 + Math.sin(Date.now()/200)*5, 0, Math.PI*2);
+        ctx.stroke();
+    }
+
+    // Render Dots
     dots.forEach((dot, i) => {
         const isNext = i === nextDotIndex;
         const isDone = i < nextDotIndex;
-        
-        if (isDone || isNext || camera.zoom < 1) {
+        const currentGroup = dots[nextDotIndex]?.letterGroup;
+
+        if (dot.letterGroup === currentGroup || nextDotIndex >= dots.length) {
             ctx.beginPath();
             ctx.arc(dot.x, dot.y, 10 / camera.zoom + 2, 0, Math.PI * 2);
-            ctx.fillStyle = isDone ? "#e91e63" : (isNext ? "#ff80ab" : "#fce4ec");
+            ctx.fillStyle = isDone ? "#e91e63" : (isNext ? "#ff80ab" : "#ffd1dc");
             ctx.fill();
 
-            // Render text
-            if (isDone || isNext) {
+            if (isNext || (isDone && nextDotIndex >= dots.length)) {
                 ctx.fillStyle = "#333";
-                ctx.font = `bold ${14 / camera.zoom + 5}px sans-serif`;
+                ctx.font = `bold ${12 / camera.zoom + 6}px sans-serif`;
                 ctx.textAlign = "center";
-                ctx.fillText(dot.word, dot.x, dot.y + (25 / camera.zoom));
+                ctx.fillText(dot.word, dot.x, dot.y + 35 / camera.zoom);
             }
         }
     });
@@ -127,46 +130,46 @@ function draw() {
 }
 
 function handleInput(e, start = false) {
-    const pos = getMousePos(e);
-    if (start) {
-        const d = dots[nextDotIndex];
-        const dist = Math.sqrt((pos.x - d.x)**2 + (pos.y - d.y)**2);
-        if (dist < 40) isDragging = true;
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const worldX = (clientX - rect.left - canvas.width / 2) / camera.zoom + camera.x;
+    const worldY = (clientY - rect.top - canvas.height / 2) / camera.zoom + camera.y;
+
+    const d = dots[nextDotIndex];
+    if (!d) return;
+
+    const dist = Math.sqrt((worldX - d.x)**2 + (worldY - d.y)**2);
+    if (start && dist < 50) {
+        isDragging = true;
+        tutorial.style.display = "none";
     }
-    
-    if (isDragging) {
-        const d = dots[nextDotIndex];
-        const dist = Math.sqrt((pos.x - d.x)**2 + (pos.y - d.y)**2);
-        if (dist < 40) {
-            connections.push(dots[nextDotIndex]);
-            nextDotIndex++;
-            messageDisplay.innerText = dots.slice(0, nextDotIndex).map(x => x.word).join(" ");
-        }
+
+    if (isDragging && dist < 50) {
+        connections.push(d);
+        nextDotIndex++;
+        
+        const allDone = dots.slice(0, nextDotIndex).map(x => x.word);
+        completedText.innerText = allDone.slice(0, -1).join(" ") + " ";
+        activeWordText.innerText = allDone[allDone.length - 1];
     }
 }
 
-// Events
+canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleInput(e, true); }, {passive: false});
+canvas.addEventListener('touchmove', (e) => handleInput(e), {passive: false});
 canvas.addEventListener('mousedown', (e) => handleInput(e, true));
 window.addEventListener('mousemove', (e) => handleInput(e));
 window.addEventListener('mouseup', () => isDragging = false);
-canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleInput(e, true); }, {passive: false});
-window.addEventListener('touchmove', (e) => handleInput(e), {passive: false});
-window.addEventListener('touchend', () => isDragging = false);
 
 window.addEventListener('resize', () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight - 150;
-    draw();
 });
 
 resetBtn.onclick = () => {
-    nextDotIndex = 0; connections = [];
-    camera = { x: dots[0].x, y: dots[0].y, zoom: 3 };
-    targetCamera = { x: dots[0].x, y: dots[0].y, zoom: 3 };
-    messageDisplay.innerText = "";
+    location.reload(); // Simplest way to reset the whole state
 };
 
-// Start
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight - 150;
 initGame();
