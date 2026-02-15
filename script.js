@@ -1,133 +1,466 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const activeWordText = document.getElementById('active-word');
-const completedText = document.getElementById('completed-text');
-const tutorial = document.getElementById('tutorial');
-const resetBtn = document.getElementById('resetBtn');
-const finalUI = document.getElementById('final-ui');
-const fullMsgElem = document.getElementById('full-message');
-const nextBtn = document.getElementById('nextPageBtn');
-
-const wordGroups = [
-    "Happiest Birthday Manu".split(" "), 
-    "you deserve all the happiness in".split(" "), 
-    "the world and I hope".split(" "), 
-    "this year gives you everything .".split(" ") 
-];
 
 let dots = [];
-let nextDotIndex = 0;
+let staticConsts = [];
 let connections = [];
+
+let freePan = false;
+let lastPanPos = null;
+
+const MIN_ZOOM = 0.4;
+const MAX_ZOOM = 2.5;
+
+let initialPinchDistance = null;
+let initialZoom = 1;
+
+let nextIndex = 0;
+let isComplete = false;
 let isDragging = false;
-let camera = { x: 0, y: 0, zoom: 2.2 };
-let targetCamera = { x: 0, y: 0, zoom: 2.2 };
 
-function initGame() {
-    dots = []; connections = []; nextDotIndex = 0;
-    const letterDots = [
-        [{x: 100, y: 100}, {x: 100, y: 300}, {x: 200, y: 300}], // L
-        [{x: 400, y: 150}, {x: 330, y: 100}, {x: 280, y: 200}, {x: 400, y: 300}, {x: 520, y: 200}, {x: 470, y: 100}], // Heart-O
-        [{x: 600, y: 100}, {x: 640, y: 200}, {x: 680, y: 300}, {x: 720, y: 200}, {x: 760, y: 100}], // V
-        [{x: 880, y: 100}, {x: 980, y: 100}, {x: 880, y: 200}, {x: 960, y: 200}, {x: 880, y: 300}, {x: 980, y: 300}] // E
+let camera = { x: 0, y: 0, zoom: 1 };
+let targetCamera = { x: 0, y: 0, zoom: 1 };
+
+const pWords = "Happiest Birthday, Manu. Seeing you happy means everything to me, and I hope this is the bestest year of your life.".split(" ");
+const aWords = "You deserve all the love, peace, and happiness in this world, and I will always wish that for you.".split(" ");
+
+/* ========================= */
+/* SCENE SETUP */
+/* ========================= */
+
+function setupScene() {
+
+    dots = [];
+    connections = [];
+    nextIndex = 0;
+    isComplete = false;
+
+    const W = canvas.width;
+    const H = canvas.height;
+
+    const worldCenterX = 0;
+    const worldCenterY = 0;
+
+    /* ---- STATIC CONSTELLATIONS (More accurate proportions) ---- */
+
+    staticConsts = [
+        {
+            name: "Cassiopeia",
+            p: [
+                {x:-400,y:-250},
+                {x:-350,y:-200},
+                {x:-300,y:-250},
+                {x:-250,y:-200},
+                {x:-200,y:-250}
+            ]
+        },
+        {
+            name: "Cepheus",
+            p: [
+                {x:-520,y:-300},
+                {x:-560,y:-200},
+                {x:-480,y:-120},
+                {x:-400,y:-200},
+                {x:-480,y:-200},
+                {x:-520,y:-300}
+            ]
+        },
+        {
+            name: "Pegasus",
+            p: [
+                {x:200,y:-50},
+                {x:400,y:-50},
+                {x:400,y:150},
+                {x:200,y:150},
+                {x:200,y:-50}
+            ]
+        }
     ];
-    wordGroups.forEach((group, gIdx) => {
-        group.forEach((word, wIdx) => {
-            const point = letterDots[gIdx][wIdx];
-            dots.push({ x: point.x, y: point.y, word, letterGroup: gIdx, size: 5 });
-        });
+
+    /* ---- PERSEUS (More realistic zig arc) ---- */
+
+    const perseusShape = [
+        {x:-150,y:100},
+        {x:-120,y:60},
+        {x:-80,y:30},
+        {x:-40,y:10},
+        {x:0,y:30},
+        {x:20,y:80},
+        {x:10,y:140},
+        {x:-20,y:200},
+        {x:-60,y:250},
+        {x:-100,y:300},
+        {x:10,y:140},
+        {x:60,y:180},
+        {x:120,y:220},
+        {x:180,y:250},
+        {x:-40,y:10},
+        {x:20,y:-10},
+        {x:80,y:0},
+        {x:140,y:30},
+        {x:200,y:70}
+    ];
+
+    pWords.forEach((w, i) => {
+        const s = perseusShape[i] || {x: i * 10, y: 0};
+        dots.push({ x: s.x, y: s.y, word: w, group: "Perseus" });
     });
-    camera.x = dots[0].x; camera.y = dots[0].y;
+
+    /* ---- ANDROMEDA (Long diagonal chain) ---- */
+
+    const andromedaShape = [
+        {x:200,y:-50},
+        {x:150,y:-80},
+        {x:100,y:-110},
+        {x:50,y:-140},
+        {x:0,y:-170},
+        {x:-50,y:-200},
+        {x:50,y:-140},
+        {x:40,y:-90},
+        {x:30,y:-40},
+        {x:20,y:10},
+        {x:10,y:60},
+        {x:-50,y:-200},
+        {x:-120,y:-230},
+        {x:-190,y:-260},
+        {x:-260,y:-290},
+        {x:-330,y:-320}
+    ];
+
+    aWords.forEach((w, i) => {
+        const s = andromedaShape[i] || {x: -i * 15, y: 0};
+        dots.push({ x: s.x, y: s.y, word: w, group: "Andromeda" });
+    });
+
+    camera.x = dots[0].x;
+    camera.y = dots[0].y;
+    camera.zoom = 1.3;
+
+    targetCamera = {...camera};
 }
 
-function update() {
-    camera.x += (targetCamera.x - camera.x) * 0.04;
-    camera.y += (targetCamera.y - camera.y) * 0.04;
-    camera.zoom += (targetCamera.zoom - camera.zoom) * 0.02;
-
-    if (nextDotIndex < dots.length) {
-        targetCamera.x = dots[nextDotIndex].x;
-        targetCamera.y = dots[nextDotIndex].y;
-    } else {
-        // Shifted right (560) and zoomed out slightly more (0.32) for mobile centering
-        targetCamera.x = 560; targetCamera.y = 250; targetCamera.zoom = 0.32;
-        showFinalReveal();
-    }
-}
-
-function showFinalReveal() {
-    finalUI.style.display = "block";
-    fullMsgElem.innerText = wordGroups.flat().join(" ");
-    document.querySelector('.ui').style.opacity = "0";
-    resetBtn.style.display = "inline-block";
-}
+/* ========================= */
+/* RENDER LOOP */
+/* ========================= */
 
 function draw() {
-    update();
+
+    camera.x += (targetCamera.x - camera.x) * 0.08;
+    camera.y += (targetCamera.y - camera.y) * 0.08;
+    camera.zoom += (targetCamera.zoom - camera.zoom) * 0.05;
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
     ctx.save();
+
     ctx.translate(canvas.width / 2, canvas.height / 2);
     ctx.scale(camera.zoom, camera.zoom);
     ctx.translate(-camera.x, -camera.y);
 
-    if (connections.length > 1) {
-        ctx.strokeStyle = "rgba(128, 222, 234, 0.7)";
-        ctx.lineWidth = 4 / camera.zoom;
+    /* STATIC CONSTELLATIONS */
+    ctx.strokeStyle = isComplete ? "#00d4ff" : "rgba(255,255,255,0.15)";
+    ctx.lineWidth = 2;
+
+    staticConsts.forEach(c => {
         ctx.beginPath();
-        ctx.moveTo(connections[0].x, connections[0].y);
-        for(let i=1; i < connections.length; i++) {
-            if (connections[i].letterGroup === connections[i-1].letterGroup) ctx.lineTo(connections[i].x, connections[i].y);
-            else ctx.moveTo(connections[i].x, connections[i].y);
-        }
+        c.p.forEach((pt, i) => {
+            i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
+        });
         ctx.stroke();
+    });
+
+    /* DRAW CONNECTIONS */
+    if (connections.length > 1 || isComplete) {
+
+    ctx.strokeStyle = "#00d4ff";
+    ctx.lineWidth = 2.5;
+
+    ctx.beginPath();
+
+    if (isComplete) {
+        ctx.moveTo(dots[0].x, dots[0].y);
+        dots.forEach(p => ctx.lineTo(p.x, p.y));
+    } else {
+        ctx.moveTo(connections[0].x, connections[0].y);
+        connections.forEach(p => ctx.lineTo(p.x, p.y));
     }
 
+    ctx.stroke();
+}
+    /* DRAW DOTS */
     dots.forEach((dot, i) => {
-        if (dot.letterGroup === dots[nextDotIndex]?.letterGroup || nextDotIndex >= dots.length) {
-            ctx.beginPath();
-            ctx.arc(dot.x, dot.y, (i === nextDotIndex ? 8 : 5) / camera.zoom, 0, Math.PI * 2);
-            ctx.fillStyle = i < nextDotIndex ? "#fff" : (i === nextDotIndex ? "#80deea" : "rgba(255,255,255,0.2)");
-            ctx.fill();
-            if (i === nextDotIndex || (i < nextDotIndex && nextDotIndex >= dots.length)) {
-                ctx.fillStyle = "white";
-                ctx.font = `bold ${10 / camera.zoom + 8}px sans-serif`;
-                ctx.textAlign = "center";
-                ctx.fillText(dot.word, dot.x, dot.y + 45 / camera.zoom);
-            }
-        }
-    });
+
+    ctx.beginPath();
+    ctx.arc(dot.x, dot.y, isComplete ? 4 : (i === nextIndex ? 6 : 3), 0, Math.PI * 2);
+
+    if (isComplete) {
+        ctx.fillStyle = "#ffffff";
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = "#00d4ff";
+    } else {
+        ctx.fillStyle =
+            (i < nextIndex) ? "white" :
+            (dot.group === dots[nextIndex]?.group ? "rgba(255,255,255,0.3)" : "transparent");
+    }
+
+    ctx.fill();
+});
+
+/* ========================= */
+/* CONSTELLATION LABELS */
+/* ========================= */
+
+if (isComplete) {
+
+    ctx.fillStyle = "#00d4ff";
+    ctx.font = "bold 22px sans-serif";
+
+    // Cassiopeia
+    ctx.fillText("Cassiopeia", -400, -280);
+
+    // Cepheus
+    ctx.fillText("Cepheus", -560, -330);
+
+    // Pegasus
+    ctx.fillText("Pegasus", 200, -80);
+
+    // Perseus
+    ctx.fillText("Perseus", -80, -40);
+
+    // Andromeda
+    ctx.fillText("Andromeda", -250, -260);
+}
+
     ctx.restore();
+
     requestAnimationFrame(draw);
 }
 
-function handleInput(e, start = false) {
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    const cX = (clientX - rect.left) * (canvas.width / rect.width);
-    const cY = (clientY - rect.top) * (canvas.height / rect.height);
-    const worldX = (cX - canvas.width / 2) / camera.zoom + camera.x;
-    const worldY = (cY - canvas.height / 2) / camera.zoom + camera.y;
+/* ========================= */
+/* DRAG TRACING */
+/* ========================= */
 
-    const target = dots[nextDotIndex];
-    if (target && Math.sqrt((worldX - target.x)**2 + (worldY - target.y)**2) < 60) {
-        if (start) { isDragging = true; tutorial.style.display = "none"; }
-        if (isDragging && !connections.includes(target)) {
-            connections.push(target); nextDotIndex++;
-            const words = dots.slice(0, nextDotIndex).map(x => x.word);
-            completedText.innerText = words.slice(0, -1).join(" ") + " ";
-            activeWordText.innerText = words[words.length - 1];
+function screenToWorld(x, y) {
+    return {
+        x: (x - canvas.width / 2) / camera.zoom + camera.x,
+        y: (y - canvas.height / 2) / camera.zoom + camera.y
+    };
+}
+
+function handleMove(clientX, clientY) {
+
+    if (!isDragging || isComplete) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const world = screenToWorld(
+        clientX - rect.left,
+        clientY - rect.top
+    );
+
+    const target = dots[nextIndex];
+    if (!target) return;
+
+    const dist = Math.hypot(world.x - target.x, world.y - target.y);
+
+    if (dist < 35) {
+
+        connections.push(target);
+        nextIndex++;
+
+        document.getElementById('completed-text').innerText =
+            dots.slice(0, nextIndex).map(d => d.word).join(" ");
+
+        if (nextIndex < dots.length) {
+            targetCamera.x = dots[nextIndex].x;
+            targetCamera.y = dots[nextIndex].y;
+            targetCamera.zoom = 1.4;
+        } else {
+            finishGame();
         }
     }
 }
 
-canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleInput(e, true); }, {passive: false});
-canvas.addEventListener('touchmove', (e) => { e.preventDefault(); handleInput(e); }, {passive: false});
-canvas.addEventListener('mousedown', (e) => handleInput(e, true));
-window.addEventListener('mousemove', (e) => { if(isDragging) handleInput(e); });
-window.addEventListener('mouseup', () => isDragging = false);
-window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight - 130; });
-canvas.width = window.innerWidth; canvas.height = window.innerHeight - 130;
-initGame(); draw();
+/* ========================= */
+/* COMPLETE */
+/* ========================= */
 
-resetBtn.onclick = () => location.reload();
-nextBtn.onclick = () => { window.location.href = "YOUR_LINK_HERE"; };
+function finishGame() {
+
+    isComplete = true;
+    freePan = true;
+
+    targetCamera.x = 0;
+    targetCamera.y = 120;
+    targetCamera.zoom = 0.7;
+
+    document.getElementById('final-ui').style.display = "block";
+    document.querySelector('.ui').style.display = "none";
+
+    document.getElementById('full-message').innerText =
+        pWords.join(" ") + " " + aWords.join(" ");
+}
+
+/* ========================= */
+/* EVENTS */
+/* ========================= */
+
+/* ========================= */
+/* EVENTS */
+/* ========================= */
+
+canvas.addEventListener('mousedown', (e) => {
+    if (isComplete) {
+        lastPanPos = { x: e.clientX, y: e.clientY };
+    } else {
+        isDragging = true;
+    }
+});
+
+canvas.addEventListener('mouseup', () => {
+    isDragging = false;
+    lastPanPos = null;
+});
+
+canvas.addEventListener('mousemove', (e) => {
+
+    if (isComplete && freePan && lastPanPos) {
+
+        const dx = (e.clientX - lastPanPos.x) / camera.zoom;
+        const dy = (e.clientY - lastPanPos.y) / camera.zoom;
+
+        camera.x -= dx;
+        camera.y -= dy;
+
+        targetCamera.x = camera.x;
+        targetCamera.y = camera.y;
+
+        lastPanPos = { x: e.clientX, y: e.clientY };
+
+    } else {
+        handleMove(e.clientX, e.clientY);
+    }
+});
+
+canvas.addEventListener("wheel", (e) => {
+
+    if (!isComplete) return;
+
+    e.preventDefault();
+
+    const zoomFactor = 1.1;
+    const rect = canvas.getBoundingClientRect();
+
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    const worldBeforeZoom = screenToWorld(mouseX, mouseY);
+
+    if (e.deltaY < 0) {
+        targetCamera.zoom *= zoomFactor;
+    } else {
+        targetCamera.zoom /= zoomFactor;
+    }
+
+    targetCamera.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, targetCamera.zoom));
+
+    // Adjust camera so zoom is centered at cursor
+    const worldAfterZoom = screenToWorld(mouseX, mouseY);
+
+    targetCamera.x += worldBeforeZoom.x - worldAfterZoom.x;
+    targetCamera.y += worldBeforeZoom.y - worldAfterZoom.y;
+
+}, { passive: false });
+
+
+/* ---------- TOUCH ---------- */
+
+canvas.addEventListener('touchstart', (e) => {
+
+    const t = e.touches[0];
+
+    if (isComplete) {
+        lastPanPos = { x: t.clientX, y: t.clientY };
+    } else {
+        isDragging = true;
+        handleMove(t.clientX, t.clientY);
+    }
+
+    e.preventDefault();
+
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+
+    const t = e.touches[0];
+
+    if (isComplete && freePan && lastPanPos) {
+
+        const dx = (t.clientX - lastPanPos.x) / camera.zoom;
+        const dy = (t.clientY - lastPanPos.y) / camera.zoom;
+
+        camera.x -= dx;
+        camera.y -= dy;
+
+        targetCamera.x = camera.x;
+        targetCamera.y = camera.y;
+
+        lastPanPos = { x: t.clientX, y: t.clientY };
+
+    } else {
+        handleMove(t.clientX, t.clientY);
+    }
+
+    e.preventDefault();
+
+}, { passive: false });
+
+canvas.addEventListener('touchend', () => {
+    isDragging = false;
+    lastPanPos = null;
+});
+
+canvas.addEventListener("touchstart", (e) => {
+
+    if (!isComplete) return;
+
+    if (e.touches.length === 2) {
+        initialPinchDistance = getPinchDistance(e.touches);
+        initialZoom = targetCamera.zoom;
+    }
+
+}, { passive: false });
+
+canvas.addEventListener("touchmove", (e) => {
+
+    if (!isComplete) return;
+
+    if (e.touches.length === 2) {
+
+        e.preventDefault();
+
+        const currentDistance = getPinchDistance(e.touches);
+        const scale = currentDistance / initialPinchDistance;
+
+        targetCamera.zoom = initialZoom * scale;
+        targetCamera.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, targetCamera.zoom));
+    }
+
+}, { passive: false });
+
+function getPinchDistance(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.hypot(dx, dy);
+}
+
+
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    setupScene();
+}
+
+window.addEventListener('resize', resize);
+
+resize();
+draw();
