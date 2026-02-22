@@ -57,3 +57,71 @@ canvas {
     width: 100vw; height: 100vh; display: block; 
     touch-action: none; will-change: transform; 
 }
+
+/* Letter Overlay Styles */
+#letter-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: radial-gradient(circle at center, rgba(0, 8, 20, 0.9) 0%, rgba(0, 2, 5, 0.98) 100%);
+    display: none; z-index: 200; overflow-y: auto;
+    backdrop-filter: blur(20px);
+}
+
+.letter-paper {
+    position: relative; margin: 40px auto; width: 85%; max-width: 650px;
+    background: rgba(255, 255, 255, 0.05); 
+    padding: 40px; border-radius: 20px; border: 1px solid rgba(0, 212, 255, 0.2);
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.7);
+}
+
+.letter-content {
+    color: #e0f7ff; 
+    font-family: 'Montserrat', sans-serif; /* Clean, Simple Font */
+    line-height: 1.8;
+    font-size: 1rem;
+    text-align: left;
+    font-weight: 300;
+}
+
+.letter-content p { margin-bottom: 20px; }
+
+.ciao-text {
+    text-align: left;
+    margin-top: 30px;
+    font-weight: 700;
+    color: #00d4ff;
+}
+
+/* Button Container for Side-by-Side layout */
+.letter-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 40px;
+}
+
+.letter-btn {
+    padding: 12px 25px;
+    border-radius: 50px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    border: none;
+}
+
+#githubBtn {
+    background: #00d4ff;
+    color: #000814;
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+}
+
+#restartBtn {
+    background: transparent;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+#restartBtn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}

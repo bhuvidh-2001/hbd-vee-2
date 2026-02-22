@@ -462,5 +462,20 @@ function resize() {
 
 window.addEventListener('resize', resize);
 
+/* ========================= */
+/* NAVIGATION TO LETTER      */
+/* ========================= */
+
+document.addEventListener('DOMContentLoaded', () => {
+    const nextBtn = document.getElementById('nextPageBtn');
+
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            // This takes the user to the new page
+            window.location.href = "letter.html";
+        });
+    }
+});
+
 resize();
 draw();
