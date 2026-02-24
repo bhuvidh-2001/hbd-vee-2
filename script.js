@@ -174,9 +174,14 @@ function handleMove(clientX, clientY) {
 function finishGame() {
     isComplete = true;
     freePan = true;
+    
+    // Position camera
     targetCamera.x = 0;
-    targetCamera.y = 120;
-    targetCamera.zoom = 0.6; // Slightly zoomed out for final view
+    // Negative Y moves the camera UP, which pushes the DRAWING DOWN
+    targetCamera.y = -100; 
+    // Zoom out further to fit all constellations (0.4 - 0.5 is usually best)
+    targetCamera.zoom = 0.45; 
+
     document.getElementById('final-ui').style.display = "block";
     document.querySelector('.ui').style.display = "none";
     document.getElementById('full-message').innerText = pWords.join(" ") + " " + aWords.join(" ");
@@ -219,6 +224,37 @@ function resize() {
     canvas.height = window.innerHeight;
     setupScene();
 }
+
+const bgMusic = document.getElementById('bgMusic');
+const openLetterBtn = document.getElementById('openLetterBtn');
+const letterOverlay = document.getElementById('letter-overlay');
+
+// 1. Set volume to 30% immediately
+bgMusic.volume = 0.3;
+
+// 2. Function to attempt playback
+const startAudio = () => {
+    bgMusic.play().then(() => {
+        // Once it starts playing, remove all listeners so they don't fire again
+        window.removeEventListener('touchstart', startAudio);
+        window.removeEventListener('click', startAudio);
+        window.removeEventListener('pointerdown', startAudio);
+        console.log("Audio started successfully");
+    }).catch(error => {
+        console.log("Audio play failed:", error);
+    });
+};
+
+// 3. Listen for ANY interaction to "unlock" the audio (crucial for mobile)
+window.addEventListener('touchstart', startAudio);
+window.addEventListener('click', startAudio);
+window.addEventListener('pointerdown', startAudio);
+
+// Letter UI logic
+openLetterBtn.addEventListener('click', () => {
+    letterOverlay.style.display = 'block';
+    document.body.style.overflowY = 'auto';
+});
 
 window.addEventListener('resize', resize);
 resize();

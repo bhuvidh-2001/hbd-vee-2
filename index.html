@@ -77,27 +77,29 @@
     
     <script src="script.js"></script>
     <script>
-        const bgMusic = document.getElementById('bgMusic');
-        const openLetterBtn = document.getElementById('openLetterBtn');
-        const letterOverlay = document.getElementById('letter-overlay');
+    const bgMusic = document.getElementById('bgMusic');
+    const openLetterBtn = document.getElementById('openLetterBtn');
+    const letterOverlay = document.getElementById('letter-overlay');
 
-        // Attempt to play music immediately
-        window.addEventListener('load', () => {
-            bgMusic.play().catch(() => {
-                // If browser blocks autoplay, play on first user interaction
-                const playOnInteraction = () => {
-                    bgMusic.play();
-                    window.removeEventListener('pointerdown', playOnInteraction);
-                };
-                window.addEventListener('pointerdown', playOnInteraction);
-            });
-        });
+    // Set volume to 30%
+    bgMusic.volume = 0.3;
 
-        // Toggle Letter UI
-        openLetterBtn.addEventListener('click', () => {
-            letterOverlay.style.display = 'block';
-            document.body.style.overflowY = 'auto'; // Enable scrolling for the letter
+    window.addEventListener('load', () => {
+        bgMusic.play().catch(() => {
+            const playOnInteraction = () => {
+                bgMusic.play();
+                window.removeEventListener('pointerdown', playOnInteraction);
+            };
+            window.addEventListener('pointerdown', playOnInteraction);
         });
-    </script>
+    });
+
+    openLetterBtn.addEventListener('click', () => {
+        letterOverlay.style.display = 'block';
+        // Ensure the overlay starts at the top
+        letterOverlay.scrollTop = 0;
+        document.body.style.overflow = 'hidden'; 
+    });
+</script>
 </body>
 </html>
