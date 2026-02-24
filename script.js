@@ -188,34 +188,87 @@ function finishGame() {
 }
 
 // Input Handlers (Pan, Zoom, Touch)
-canvas.addEventListener('mousedown', (e) => { isComplete ? lastPanPos = { x: e.clientX, y: e.clientY } : isDragging = true; });
-canvas.addEventListener('mouseup', () => { isDragging = false; lastPanPos = null; });
+// 1. Mouse Wheel Zoom (Desktop)
+canvas.addEventListener('wheel', (e) => {
+    if (!isComplete) return; 
+    e.preventDefault();
+    const zoomSpeed = 0.0015;
+    targetCamera.zoom -= e.deltaY * zoomSpeed;
+    // Keep zoom within the MIN/MAX limits defined at the top
+    targetCamera.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, targetCamera.zoom));
+}, { passive: false });
+
+// 2. Mouse Click/Drag
+canvas.addEventListener('mousedown', (e) => { 
+    isComplete ? lastPanPos = { x: e.clientX, y: e.clientY } : isDragging = true; 
+});
+
+canvas.addEventListener('mouseup', () => { 
+    isDragging = false; 
+    lastPanPos = null; 
+});
+
 canvas.addEventListener('mousemove', (e) => {
     if (isComplete && freePan && lastPanPos) {
         camera.x -= (e.clientX - lastPanPos.x) / camera.zoom;
         camera.y -= (e.clientY - lastPanPos.y) / camera.zoom;
         targetCamera.x = camera.x; targetCamera.y = camera.y;
         lastPanPos = { x: e.clientX, y: e.clientY };
-    } else { handleMove(e.clientX, e.clientY); }
+    } else { 
+        handleMove(e.clientX, e.clientY); 
+    }
 });
 
+// 3. Touch/Pinch (Mobile)
 canvas.addEventListener('touchstart', (e) => {
-    const t = e.touches[0];
-    if (isComplete) { lastPanPos = { x: t.clientX, y: t.clientY }; } 
-    else { isDragging = true; handleMove(t.clientX, t.clientY); }
+    if (e.touches.length === 2 && isComplete) {
+        // Start Pinch Zoom
+        initialPinchDistance = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+        );
+        initialZoom = targetCamera.zoom;
+    } else {
+        const t = e.touches[0];
+        if (isComplete) { 
+            lastPanPos = { x: t.clientX, y: t.clientY }; 
+        } else { 
+            isDragging = true; 
+            handleMove(t.clientX, t.clientY); 
+        }
+    }
     e.preventDefault();
 }, { passive: false });
 
 canvas.addEventListener('touchmove', (e) => {
-    const t = e.touches[0];
-    if (isComplete && freePan && lastPanPos) {
-        camera.x -= (t.clientX - lastPanPos.x) / camera.zoom;
-        camera.y -= (t.clientY - lastPanPos.y) / camera.zoom;
-        targetCamera.x = camera.x; targetCamera.y = camera.y;
-        lastPanPos = { x: t.clientX, y: t.clientY };
-    } else { handleMove(t.clientX, t.clientY); }
+    if (e.touches.length === 2 && isComplete) {
+        // Perform Pinch Zoom
+        const currentDistance = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+        );
+        const factor = currentDistance / initialPinchDistance;
+        targetCamera.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, initialZoom * factor));
+    } else if (e.touches.length === 1) {
+        // Perform Panning
+        const t = e.touches[0];
+        if (isComplete && freePan && lastPanPos) {
+            camera.x -= (t.clientX - lastPanPos.x) / camera.zoom;
+            camera.y -= (t.clientY - lastPanPos.y) / camera.zoom;
+            targetCamera.x = camera.x; targetCamera.y = camera.y;
+            lastPanPos = { x: t.clientX, y: t.clientY };
+        } else { 
+            handleMove(t.clientX, t.clientY); 
+        }
+    }
     e.preventDefault();
 }, { passive: false });
+
+canvas.addEventListener('touchend', () => { 
+    isDragging = false; 
+    lastPanPos = null; 
+    initialPinchDistance = null; 
+});
 
 canvas.addEventListener('touchend', () => { isDragging = false; lastPanPos = null; });
 
