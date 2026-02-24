@@ -6,14 +6,42 @@
     <title>Happiest Birthday Veda!</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <style>
+        /* Integrated Letter Styles */
+        #letter-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, #001233 0%, #000814 100%);
+            display: none; z-index: 1000; overflow-y: auto;
+            color: #e0f7ff; font-family: 'Montserrat', sans-serif;
+            animation: fadeIn 1.5s ease-in-out;
+        }
+        .letter-container {
+            width: 85%; max-width: 650px; margin: 50px auto;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 40px; border-radius: 20px;
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            box-shadow: 0 0 60px rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(15px);
+        }
+        .content { line-height: 1.8; font-size: 1rem; font-weight: 300; }
+        .content p { margin-bottom: 20px; }
+        .ciao { margin-top: 30px; font-weight: 700; color: #00d4ff; }
+        .footer-buttons { display: flex; gap: 15px; justify-content: flex-start; margin-top: 40px; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </head>
 <body>
+    <audio id="bgMusic" src="Until_I_Found_You.mp3" autoplay loop></audio>
+
     <div class="stars-bg"></div>
     
     <div id="final-ui">
         <h2 id="final-heading">Happy Birthday Vedantika! 🩵</h2>
         <p id="full-message"></p>
-        <button id="nextPageBtn">Special Letter</button>
+        <button id="openLetterBtn" class="btn btn-github" style="margin-top: 15px; padding: 10px 30px; border-radius: 50px; border:none; font-weight:bold; cursor:pointer; background:#00d4ff; color:#000814;">Special Letter</button>
     </div>
 
     <div class="ui">
@@ -25,7 +53,51 @@
     </div>
 
     <canvas id="gameCanvas"></canvas>
+
+    <div id="letter-overlay">
+        <div class="letter-container">
+            <div class="content">
+                <p>Hi,</p>
+                <p>How are you? I hope changlich ashnar. I know… I know… Tujha parat aaikawa lagel mala ki kaay garaj hoti yachi. Tu gift dila na, baas aahe tey, vagere vagere...</p>
+                <p>You see, mala kahi expected nahi aahe aata tujhya kadun, because I accept you the way you are. I read somewhere, "You could be the prettiest shade of blue, but if they like red, it wouldn't matter." It took me a very long time to truly process that your feelings are not the same as mine, but I’ve made peace with that. And yet, still I genuinely love doing things for you.</p>
+                <p>I know I annoy you sometimes. Kadhi kadhi kharach khup jast karto mi. And maybe, just maybe, I go a little overboard just to make you happy or comfortable. But see, that’s just who I am. Seeing you happy, seeing you at ease, that matters to me more than anything. At the end of the day, that’s what makes me happy. But shhhh… keeping everything aside…</p>
+                <p><strong>Happiest Birthday, Veda 🩵</strong></p>
+                <p>Today is your day. I know you’ve been through a lot, aani as I said before, mi khup jasta admire karto tula for the way you keep moving forward with grace and courage. Tu khup strong aahes. You carry things quietly. You handle more than people see. And that strength in you is something I respect deeply. Not everyone has that strength. You truly deserve all the happiness, love, peace, and all good things this world has to offer.</p>
+                <p>And I promise to take care of you and to stand by you in the ways I can. This past year had its moments. We fought, we clashed, we crashed out on each other more than a few times. But somehow, we always found our way back to understanding. Lets try to fight a little bit less this year. Hehe... Maybe you were right when you said that we could be each other’s karmic person.</p>
+                <p>But yeah, keeping all that aside, it was a good year. And I believe the next one will be even better for you. A year where things start falling into place, where you feel lighter, calmer, happier, and more loved than ever before.</p>
+                <p>You are incredibly special, Manu. And I’m genuinely grateful for you 🩵✨</p>
+                <p class="ciao">Ciao!</p>
+            </div>
+            <div class="footer-buttons">
+                <button onclick="location.reload()" class="btn btn-restart" style="padding: 12px 25px; border-radius: 50px; font-weight: bold; cursor: pointer; background: transparent; color: white; border: 1px solid rgba(255,255,255,0.4);">Restart Game</button>
+                <a href="https://github.com/bhuvidh-2001/hbd-vee-2" target="_blank" class="btn btn-github" style="padding: 12px 25px; border-radius: 50px; font-weight: bold; cursor: pointer; text-decoration: none; background: #00d4ff; color: #000814;">GitHub Link</a>
+            </div>
+        </div>
+    </div>
     
     <script src="script.js"></script>
+    <script>
+        const bgMusic = document.getElementById('bgMusic');
+        const openLetterBtn = document.getElementById('openLetterBtn');
+        const letterOverlay = document.getElementById('letter-overlay');
+
+        // Attempt to play music immediately
+        window.addEventListener('load', () => {
+            bgMusic.play().catch(() => {
+                // If browser blocks autoplay, play on first user interaction
+                const playOnInteraction = () => {
+                    bgMusic.play();
+                    window.removeEventListener('pointerdown', playOnInteraction);
+                };
+                window.addEventListener('pointerdown', playOnInteraction);
+            });
+        });
+
+        // Toggle Letter UI
+        openLetterBtn.addEventListener('click', () => {
+            letterOverlay.style.display = 'block';
+            document.body.style.overflowY = 'auto'; // Enable scrolling for the letter
+        });
+    </script>
 </body>
 </html>
