@@ -81,15 +81,18 @@ function draw() {
     ctx.scale(camera.zoom, camera.zoom);
     ctx.translate(-camera.x, -camera.y);
 
-    // Render logic for constellations and dots
+    // 1. Draw Static Constellations
     staticConsts.forEach(c => {
         ctx.strokeStyle = isComplete ? "#00d4ff" : "rgba(255,255,255,0.15)";
         ctx.lineWidth = 2;
         ctx.beginPath();
-        c.p.forEach((pt, i) => { i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y); });
+        c.p.forEach((pt, i) => { 
+            i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y); 
+        });
         ctx.stroke();
     });
 
+    // 2. Draw Active Connections
     if (connections.length > 1 || isComplete) {
         ctx.strokeStyle = "#00d4ff";
         ctx.lineWidth = 2.5;
@@ -104,6 +107,7 @@ function draw() {
         ctx.stroke();
     }
 
+    // 3. Draw Dots
     dots.forEach((dot, i) => {
         ctx.beginPath();
         ctx.arc(dot.x, dot.y, isComplete ? 4 : (i === nextIndex ? 6 : 3), 0, Math.PI * 2);
@@ -115,7 +119,24 @@ function draw() {
             ctx.fillStyle = (i < nextIndex) ? "white" : (dot.group === dots[nextIndex]?.group ? "rgba(255,255,255,0.3)" : "transparent");
         }
         ctx.fill();
+        ctx.shadowBlur = 0; // Reset shadow for other elements
     });
+
+    // 4. DRAW CONSTELLATION NAMES (Added back here)
+    if (isComplete) {
+        ctx.fillStyle = "#00d4ff";
+        ctx.font = "bold 20px Montserrat, sans-serif";
+        ctx.textAlign = "center";
+
+        // Labels for Static Constellations
+        ctx.fillText("Cassiopeia", -300, -280);
+        ctx.fillText("Cepheus", -480, -330);
+        ctx.fillText("Pegasus", 300, -80);
+
+        // Labels for Main Traced Constellations
+        ctx.fillText("Perseus", 0, -30);
+        ctx.fillText("Andromeda", -100, -350);
+    }
 
     ctx.restore();
     requestAnimationFrame(draw);
